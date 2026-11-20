@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraPulse</title>
+<style>
+:root{--g9:#123b2b;--g7:#1f6b4a;--g5:#3d9a6b;--g1:#e6f3ea;--bg:#f8fcf9;--ink:#13261d;--mute:#5a6e63;--line:#cfe3d6;--w:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--g9);color:#fff}
+.bar{max-width:880px;margin:auto;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:800;font-size:22px;letter-spacing:.2px}.logo i{font-style:normal;color:#8be0b0}
+.lang button{background:transparent;border:1px solid #4d7f68;color:#cfe9da;padding:6px 12px;font:inherit;cursor:pointer}
+.lang button:first-child{border-radius:8px 0 0 8px}.lang button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.lang button.on{background:#8be0b0;color:var(--g9);border-color:#8be0b0;font-weight:700}
+.hero{max-width:880px;margin:auto;padding:34px 18px 44px}
+h1{font-size:clamp(28px,6vw,46px);line-height:1.1;margin:0 0 12px;max-width:15em}
+.hero p{margin:0;color:#cfe9da;max-width:34em}
+main{max-width:880px;margin:-24px auto 40px;padding:0 18px}
+.card{background:var(--w);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:180px;padding:13px 14px;font:inherit;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+input:focus,button:focus-visible{outline:3px solid #8be0b0;outline-offset:1px}
+.btn{background:var(--g7);color:#fff;border:0;border-radius:10px;padding:13px 20px;font:inherit;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--g9)}.btn.alt{background:var(--g1);color:var(--g9)}
+.btn.alt:hover{background:#d3ebdc}
+video{width:100%;max-height:340px;background:#000;border-radius:10px;margin-top:12px;display:none}
+.msg{margin-top:12px;color:var(--mute)}.err{color:#a63a2b}
+.prod{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.prod img{width:110px;height:110px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#fff}
+.prod h3{margin:0 0 2px;font-size:22px}.sub{color:var(--mute)}
+.grades{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.gr{border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:104px}
+.gr small{display:block;color:var(--mute)}
+.gr b{font-size:26px}
+.A{color:#1b8a3f}.B{color:#6aa62a}.C{color:#c9a400}.D{color:#d9721c}.E{color:#c23a2b}.N{color:var(--mute)}
+h4{margin:16px 0 6px;font-size:16px;color:var(--g7)}
+ul{margin:0;padding-left:20px}
+.tip{background:var(--g1);border-radius:10px;padding:10px 14px;margin-top:8px}
+.note{font-size:14px;color:var(--mute)}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.guide div{border:1px solid var(--line);border-radius:10px;padding:12px}
+.guide b{display:block;color:var(--g7);margin-bottom:4px}
+footer{text-align:center;color:var(--mute);font-size:14px;padding:0 18px 30px}
+</style>
+</head>
+<body>
+<header>
+ <div class="bar"><div class="logo">Terra<i>Pulse</i></div>
+  <div class="lang"><button id="bk" onclick="setLang('kk')">ҚАЗ</button><button id="br" onclick="setLang('ru')">РУС</button></div></div>
+ <div class="hero"><h1 data-t="h1"></h1><p data-t="sub"></p></div>
+</header>
+<main>
+ <section class="card">
+  <h2 data-t="scan"></h2>
+  <div class="row">
+   <input id="code" inputmode="numeric" maxlength="14" data-p="ph">
+   <button class="btn" onclick="lookup(code.value)" data-t="check"></button>
+   <button class="btn alt" onclick="startCam()" data-t="cam"></button>
+  </div>
+  <video id="vid" playsinline muted></video>
+  <div id="status" class="msg"></div>
+ </section>
+ <section id="result" class="card" style="display:none"></section>
+ <section class="card">
+  <h2 data-t="gt"></h2>
+  <div class="guide" id="guide"></div>
+ </section>
+</main>
+<footer data-t="foot"></footer>
+
+<script>
+var T={
+kk:{h1:"Өнімнің экологиялық ізін штрихкод арқылы біліңіз",sub:"Штрихкодты сканерлеңіз — өнім құрамы, қаптамасы және оны қайда өткізу керегі туралы ақпарат алыңыз.",
+scan:"Өнімді тексеру",ph:"Штрихкод, мысалы 3017620422003",check:"Тексеру",cam:"Камерамен сканерлеу",
+load:"Open Food Facts базасынан іздеудеміз…",nf:"Бұл штрихкод Open Food Facts базасында табылмады. Нөмірді тексеріп, қайта енгізіңіз.",
+bad:"Штрихкод 8–14 саннан тұруы керек.",net:"Байланыс қатесі. Интернетті тексеріңіз.",
+nocam:"Бұл браузерде камерамен сканерлеу жоқ (Chrome-ды қолданыңыз). Нөмірді қолмен енгізіңіз.",camerr:"Камераға рұқсат берілмеді. Нөмірді қолмен енгізіңіз.",scanning:"Штрихкодты камераға көрсетіңіз…",
+eco:"Эко-баға",nutri:"Нутри-баға",nova:"NOVA (өңдеу дәрежесі)",nd:"дерек жоқ",
+brand:"Бренд",pack:"Қаптама",ingr:"Құрамы",none:"Қолжетімді дерек жоқ",
+rec:"Қаптаманы қайда өткізу керек",norec:"Қаптама туралы дерек жоқ, сондықтан нақты кеңес бере алмаймыз. Қаптамадағы қайта өңдеу белгісін қараңыз.",
+ecoDesc:{a:"Қоршаған ортаға әсері өте төмен",b:"Әсері төмен",c:"Әсері орташа",d:"Әсері жоғары",e:"Әсері өте жоғары"},
+novaDesc:{1:"өңделмеген/аз өңделген",2:"кулинарлық ингредиент",3:"өңделген",4:"ультра-өңделген"},
+src:"Деректер: Open Food Facts (ашық дерек, пайдаушылар толтырады — толық болмауы мүмкін).",
+gt:"Қалдықты сұрыптау нұсқаулығы",foot:"TerraPulse — студенттік экологиялық жоба. Барлық функциялар тегін.",
+g:[["Пластик","Жуып, қысып, қақпағымен бірге пластик контейнерге салыңыз. Белгісін (PET, HDPE) қараңыз."],["Қағаз","Таза және құрғақ қағаз бен картонды бөлек жинаңыз. Майлы қағаз қайта өңделмейді."],["Шыны","Бөтелке мен банканы шайып өткізіңіз. Қақпағын бөлек алыңыз."],["Металл","Алюминий және консерві банкаларын шайып, қысып өткізіңіз."],["Органика","Тағам қалдығы мен өсімдік қалдығын компостқа жіберіңіз, пластикпен араластырмаңыз."]],
+tips:{plastic:"Пластик: жуып, қысып, пластик қалдық контейнеріне салыңыз.",glass:"Шыны: шайып, шыны контейнеріне өткізіңіз.",paper:"Қағаз/картон: құрғақ күйінде қағаз контейнеріне салыңыз.",metal:"Металл: шайып, қысып, металл қалдық контейнеріне салыңыз."}},
+ru:{h1:"Узнайте экологический след продукта по штрихкоду",sub:"Отсканируйте штрихкод — получите данные о составе, упаковке и о том, куда её сдавать.",
+scan:"Проверить продукт",ph:"Штрихкод, например 3017620422003",check:"Проверить",cam:"Сканировать камерой",
+load:"Ищем в базе Open Food Facts…",nf:"Этот штрихкод не найден в Open Food Facts. Проверьте номер и попробуйте снова.",
+bad:"Штрихкод должен содержать 8–14 цифр.",net:"Ошибка связи. Проверьте интернет.",
+nocam:"В этом браузере нет сканирования камерой (используйте Chrome). Введите номер вручную.",camerr:"Нет доступа к камере. Введите номер вручную.",scanning:"Наведите камеру на штрихкод…",
+eco:"Эко-оценка",nutri:"Нутри-оценка",nova:"NOVA (степень обработки)",nd:"нет данных",
+brand:"Бренд",pack:"Упаковка",ingr:"Состав",none:"Нет доступных данных",
+rec:"Куда сдавать упаковку",norec:"Данных об упаковке нет, поэтому точный совет дать не можем. Смотрите маркировку на упаковке.",
+ecoDesc:{a:"Очень низкое воздействие на среду",b:"Низкое воздействие",c:"Среднее воздействие",d:"Высокое воздействие",e:"Очень высокое воздействие"},
+novaDesc:{1:"не/минимально обработан",2:"кулинарный ингредиент",3:"обработанный",4:"ультра-обработанный"},
+src:"Данные: Open Food Facts (открытая база, заполняется пользователями — может быть неполной).",
+gt:"Руководство по сортировке отходов",foot:"TerraPulse — студенческий экологический проект. Все функции бесплатны.",
+g:[["Пластик","Промойте, сомните, сдавайте в контейнер для пластика вместе с крышкой. Смотрите маркировку (PET, HDPE)."],["Бумага","Чистую сухую бумагу и картон собирайте отдельно. Жирная бумага не перерабатывается."],["Стекло","Бутылки и банки ополосните. Крышки снимите отдельно."],["Металл","Алюминиевые и консервные банки ополосните и сомните."],["Органика","Пищевые и растительные остатки — в компост, не смешивайте с пластиком."]],
+tips:{plastic:"Пластик: промойте, сомните, сдайте в контейнер для пластика.",glass:"Стекло: ополосните и сдайте в контейнер для стекла.",paper:"Бумага/картон: сухим в контейнер для бумаги.",metal:"Металл: ополосните, сомните, сдайте в контейнер для металла."}}
+};
+var lang=localStorage.getItem("tp_lang")||"kk",last=null,stream=null;
+function $(i){return document.getElementById(i)}
+function setLang(l){lang=l;try{localStorage.setItem("tp_lang",l)}catch(e){}
+ document.documentElement.lang=l;var t=T[l];
+ document.querySelectorAll("[data-t]").forEach(function(e){var v=t[e.dataset.t];if(typeof v==="string")e.textContent=v});
+ document.querySelectorAll("[data-p]").forEach(function(e){e.placeholder=t[e.dataset.p]});
+ $("bk").className=l==="kk"?"on":"";$("br").className=l==="ru"?"on":"";
+ $("guide").innerHTML=t.g.map(function(x){return"<div><b>"+x[0]+"</b>"+x[1]+"</div>"}).join("");
+ if(last)render(last)}
+function esc(s){var d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML}
+function say(m,e){$("status").className="msg"+(e?" err":"");$("status").textContent=m}
+async function lookup(c){
+ c=(c||"").replace(/\D/g,"");var t=T[lang];
+ if(c.length<8||c.length>14){say(t.bad,1);return}
+ $("code").value=c;say(t.load);
+ try{
+  var r=await fetch("https://world.openfoodfacts.org/api/v2/product/"+c+".json?fields=product_name,brands,image_front_small_url,ecoscore_grade,nutriscore_grade,nova_group,packaging,packaging_tags,packaging_materials_tags,ingredients_text");
+  var j=await r.json();
+  if(j.status!==1||!j.product){say(t.nf,1);$("result").style.display="none";last=null;return}
+  last=j.product;say("");render(last);
+  $("result").scrollIntoView({behavior:"smooth"})
+ }catch(e){say(t.net,1)}}
+function grade(g){g=(g||"").toLowerCase();return/^[a-e]$/.test(g)?g:null}
+function render(p){
+ var t=T[lang],eg=grade(p.ecoscore_grade),ng=grade(p.nutriscore_grade),nv=p.nova_group;
+ var tags=[].concat(p.packaging_tags||[],p.packaging_materials_tags||[]).join(" ");
+ var tp=[];
+ if(/plastic|pet|hdpe|bottle/.test(tags))tp.push(t.tips.plastic);
+ if(/glass/.test(tags))tp.push(t.tips.glass);
+ if(/paper|cardboard|carton/.test(tags))tp.push(t.tips.paper);
+ if(/metal|aluminium|aluminum|steel|can|tin/.test(tags))tp.push(t.tips.metal);
+ var h='<div class="prod">'+(p.image_front_small_url?'<img src="'+esc(p.image_front_small_url)+'" alt="">':'')+
+ '<div><h3>'+esc(p.product_name||"—")+'</h3><div class="sub">'+t.brand+': '+esc(p.brands||t.nd)+'</div></div></div>'+
+ '<div class="grades">'+
+ '<div class="gr"><small>'+t.eco+'</small><b class="'+(eg?eg.toUpperCase():"N")+'">'+(eg?eg.toUpperCase():"?")+'</b><small>'+(eg?t.ecoDesc[eg]:t.nd)+'</small></div>'+
+ '<div class="gr"><small>'+t.nutri+'</small><b class="'+(ng?ng.toUpperCase():"N")+'">'+(ng?ng.toUpperCase():"?")+'</b></div>'+
+ '<div class="gr"><small>'+t.nova+'</small><b class="N">'+(nv||"?")+'</b><small>'+(t.novaDesc[nv]||t.nd)+'</small></div></div>'+
+ '<h4>'+t.pack+'</h4><div>'+esc(p.packaging||t.none)+'</div>'+
+ '<h4>'+t.rec+'</h4>'+(tp.length?tp.map(function(x){return'<div class="tip">'+x+'</div>'}).join(""):'<div>'+t.norec+'</div>')+
+ '<h4>'+t.ingr+'</h4><div>'+esc(p.ingredients_text||t.none)+'</div>'+
+ '<p class="note">'+t.src+'</p>';
+ $("result").innerHTML=h;$("result").style.display="block"}
+async function startCam(){
+ var t=T[lang];
+ if(!("BarcodeDetector" in window)||!navigator.mediaDevices){say(t.nocam,1);return}
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  var v=$("vid");v.srcObject=stream;v.style.display="block";await v.play();say(t.scanning);
+  var d=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+  var tick=async function(){
+   if(!stream)return;
+   try{var f=await d.detect(v);if(f.length){stopCam();lookup(f[0].rawValue);return}}catch(e){}
+   setTimeout(tick,300)};
+  tick()
+ }catch(e){say(t.camerr,1)}}
+function stopCam(){if(stream){stream.getTracks().forEach(function(x){x.stop()});stream=null}$("vid").style.display="none"}
+$("code").addEventListener("keydown",function(e){if(e.key==="Enter")lookup(this.value)});
+setLang(lang);
+</script>
+</body>
+</html>
